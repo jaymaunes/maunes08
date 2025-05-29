@@ -44,10 +44,12 @@ class PaymentController extends Controller
             ->where('status', 'active')
             ->get();
 
+        // Get only unpaid bills and group them by customer
         $bills = Bill::where('status', 'unpaid')
             ->with('customer')  // Eager load customer data
             ->orderBy('due_date', 'asc')  // Show oldest due bills first
-            ->get();
+            ->get()
+            ->groupBy('customer_id');
 
         $paymentMethods = [
             'cash' => 'Cash',
@@ -63,7 +65,7 @@ class PaymentController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'bill_id' => 'required|exists:bills,id',
+            'bill_id' => 'required|exists:bills,id,status,unpaid',
             'customer_id' => 'required|exists:customers,id',
             'amount' => 'required|numeric|min:0',
             'payment_method' => 'required|in:cash,check,bank_transfer,online_payment,gcash',
@@ -75,15 +77,13 @@ class PaymentController extends Controller
         try {
             DB::beginTransaction();
 
-            // Get the bill and verify it's unpaid
+            // Get the bill and verify it belongs to the customer
             $bill = Bill::where('id', $validated['bill_id'])
+                ->where('customer_id', $validated['customer_id'])
                 ->where('status', 'unpaid')
-                ->firstOrFail();
-            
-            // Verify the bill belongs to the selected customer
-            if ($bill->customer_id !== $validated['customer_id']) {
-                throw new \Exception('The selected bill does not belong to this customer.');
-            }
+                ->firstOr(function() {
+                    throw new \Exception('The selected bill does not exist or has already been paid.');
+                });
 
             // Validate payment amount
             if ($validated['amount'] > $bill->total_amount) {
@@ -97,7 +97,6 @@ class PaymentController extends Controller
             // Create payment record
             $payment = new Payment($validated);
             $payment->received_by = Auth::id();
-            $payment->status = 'completed';
             $payment->save();
 
             // Update bill status
@@ -124,7 +123,9 @@ class PaymentController extends Controller
 
     public function edit(Payment $payment)
     {
-        $customers = Customer::orderBy('name')->get();
+        $customers = Customer::orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
         $bills = Bill::where(function($query) use ($payment) {
                 $query->where('status', 'unpaid')
                     ->orWhere('id', $payment->bill_id);

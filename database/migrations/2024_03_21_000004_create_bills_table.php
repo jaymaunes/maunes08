@@ -22,6 +22,7 @@ return new class extends Migration
             $table->date('billing_date');
             $table->date('due_date');
             $table->enum('status', ['unpaid', 'paid', 'overdue', 'cancelled'])->default('unpaid');
+            $table->timestamp('paid_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
         });

@@ -63,7 +63,7 @@
                         <div class="mb-3">
                             <label for="bill_date" class="form-label">Bill Date</label>
                             <input type="date" class="form-control @error('bill_date') is-invalid @enderror" 
-                                id="bill_date" name="bill_date" value="{{ old('bill_date', $bill->bill_date->format('Y-m-d')) }}" required>
+                                id="bill_date" name="bill_date" value="{{ old('bill_date', $bill->bill_date) }}" required>
                             @error('bill_date')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -72,7 +72,7 @@
                         <div class="mb-3">
                             <label for="due_date" class="form-label">Due Date</label>
                             <input type="date" class="form-control @error('due_date') is-invalid @enderror" 
-                                id="due_date" name="due_date" value="{{ old('due_date', $bill->due_date->format('Y-m-d')) }}" required>
+                                id="due_date" name="due_date" value="{{ old('due_date', $bill->due_date) }}" required>
                             @error('due_date')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror

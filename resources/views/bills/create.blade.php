@@ -32,7 +32,7 @@
                                 <option value="">Select Customer</option>
                                 @foreach($customers as $customer)
                                     <option value="{{ $customer->id }}" {{ old('customer_id') == $customer->id ? 'selected' : '' }}>
-                                        {{ $customer->name }}
+                                        {{ $customer->full_name }} ({{ $customer->meter_number }})
                                     </option>
                                 @endforeach
                             </select>
@@ -46,8 +46,10 @@
                             <select name="meter_reading_id" id="meter_reading_id" class="form-control @error('meter_reading_id') is-invalid @enderror" required>
                                 <option value="">Select Meter Reading</option>
                                 @foreach($readings as $reading)
-                                    <option value="{{ $reading->id }}" {{ old('meter_reading_id') == $reading->id ? 'selected' : '' }}>
-                                        Reading: {{ number_format($reading->reading, 2) }} m³ ({{ $reading->reading_date->format('M d, Y') }})
+                                    <option value="{{ $reading->id }}" 
+                                        data-customer-id="{{ $reading->customer_id }}"
+                                        {{ old('meter_reading_id') == $reading->id ? 'selected' : '' }}>
+                                        Reading: {{ number_format($reading->reading, 2) }} m³ | Previous: {{ number_format($reading->previous_reading, 2) }} m³ | Date: {{ $reading->reading_date->format('M d, Y') }} | Consumption: {{ number_format($reading->consumption, 2) }} m³
                                     </option>
                                 @endforeach
                             </select>
@@ -57,10 +59,10 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="bill_date" class="form-label">Bill Date</label>
-                            <input type="date" class="form-control @error('bill_date') is-invalid @enderror" 
-                                id="bill_date" name="bill_date" value="{{ old('bill_date', date('Y-m-d')) }}" required>
-                            @error('bill_date')
+                            <label for="billing_date" class="form-label">Bill Date</label>
+                            <input type="date" class="form-control @error('billing_date') is-invalid @enderror" 
+                                id="billing_date" name="billing_date" value="{{ old('billing_date', date('Y-m-d')) }}" required>
+                            @error('billing_date')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -95,21 +97,40 @@
 
 @push('scripts')
 <script>
-    document.getElementById('customer_id').addEventListener('change', function() {
-        const customerId = this.value;
-        const readingSelect = document.getElementById('meter_reading_id');
-        const options = readingSelect.options;
+document.addEventListener('DOMContentLoaded', function() {
+    const customerSelect = document.getElementById('customer_id');
+    const meterReadingSelect = document.getElementById('meter_reading_id');
+    const meterReadingOptions = Array.from(meterReadingSelect.options);
 
-        for (let i = 0; i < options.length; i++) {
-            const option = options[i];
-            if (option.dataset.customerId === customerId || option.value === '') {
-                option.style.display = '';
-            } else {
-                option.style.display = 'none';
+    function filterMeterReadings() {
+        const selectedCustomerId = customerSelect.value;
+        
+        // Reset meter reading select
+        meterReadingSelect.innerHTML = '';
+        meterReadingSelect.appendChild(new Option('Select Meter Reading', ''));
+        
+        // Filter and add relevant meter readings
+        meterReadingOptions.forEach(option => {
+            if (!option.value) return; // Skip the placeholder option
+            
+            const customerId = option.getAttribute('data-customer-id');
+            if (!selectedCustomerId || customerId === selectedCustomerId) {
+                meterReadingSelect.appendChild(option.cloneNode(true));
             }
+        });
+
+        // If there's only one meter reading (excluding placeholder), select it
+        if (meterReadingSelect.options.length === 2) {
+            meterReadingSelect.selectedIndex = 1;
         }
-    });
+    }
+
+    // Initial filter
+    filterMeterReadings();
+
+    // Add event listener for customer select changes
+    customerSelect.addEventListener('change', filterMeterReadings);
+});
 </script>
 @endpush
-
 @endsection 

@@ -67,20 +67,26 @@
                             <tbody>
                                 @forelse ($bills as $bill)
                                     <tr>
-                                        <td>{{ str_pad($bill->id, 6, '0', STR_PAD_LEFT) }}</td>
-                                        <td>{{ $bill->customer->name }}</td>
-                                        <td>₱{{ number_format($bill->amount, 2) }}</td>
+                                        <td>{{ $bill->bill_number }}</td>
+                                        <td>{{ $bill->customer_name ?? $bill->customer->first_name . ' ' . $bill->customer->last_name }}</td>
+                                        <td>₱{{ number_format($bill->total_amount, 2) }}</td>
                                         <td>{{ number_format($bill->consumption, 2) }} m³</td>
-                                        <td>{{ $bill->bill_date->format('M d, Y') }}</td>
-                                        <td>{{ $bill->due_date->format('M d, Y') }}</td>
+                                        <td>{{ $bill->billing_date ? \Carbon\Carbon::parse($bill->billing_date)->format('Y-m-d') : '' }}</td>
+                                        <td>{{ $bill->due_date ? \Carbon\Carbon::parse($bill->due_date)->format('Y-m-d') : '' }}</td>
                                         <td>
-                                            <span class="badge bg-{{ $bill->status === 'paid' ? 'success' : ($bill->is_overdue ? 'danger' : 'warning') }}">
+                                            <span class="badge bg-{{ $bill->status === 'paid' ? 'success' : ($bill->due_date && \Carbon\Carbon::parse($bill->due_date)->isPast() ? 'danger' : 'warning') }}">
                                                 {{ ucfirst($bill->status) }}
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="{{ route('bills.show', $bill) }}" class="btn btn-sm btn-info">View</a>
-                                            <a href="{{ route('bills.edit', $bill) }}" class="btn btn-sm btn-primary">Edit</a>
+                                            <a href="{{ route('bills.show', $bill) }}" class="btn btn-sm btn-info">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                            @if($bill->status !== 'paid')
+                                            <a href="{{ route('bills.edit', $bill) }}" class="btn btn-sm btn-primary">
+                                                <i class="bi bi-pencil"></i> Edit
+                                            </a>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty

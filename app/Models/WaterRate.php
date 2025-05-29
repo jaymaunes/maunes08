@@ -27,6 +27,11 @@ class WaterRate extends Model
         'is_active' => 'boolean'
     ];
 
+    public function bills()
+    {
+        return $this->hasMany(Bill::class);
+    }
+
     public static function getCategories()
     {
         return [
@@ -51,5 +56,18 @@ class WaterRate extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeForCategory($query, $category)
+    {
+        return $query->where('category', $category);
+    }
+
+    public static function getCurrentRate($category)
+    {
+        return static::active()
+            ->forCategory($category)
+            ->orderBy('effective_date', 'desc')
+            ->first();
     }
 } 

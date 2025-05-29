@@ -56,11 +56,15 @@ class MeterReadingController extends Controller
                 throw new \Exception('New reading must be greater than the last reading (' . $lastReading->reading . ')');
             }
 
-            $reading = new MeterReading($validated);
-            $reading->read_by = Auth::id();
-            $reading->status = 'pending';
-            $reading->previous_reading = $lastReading ? $lastReading->reading : 0;
-            $reading->save();
+            // Prepare all data before creating the instance
+            $data = array_merge($validated, [
+                'read_by' => Auth::id(),
+                'status' => 'pending',
+                'previous_reading' => $lastReading ? $lastReading->reading : 0
+            ]);
+
+            // Create and save the meter reading with all data
+            $reading = MeterReading::create($data);
 
             DB::commit();
 
@@ -81,7 +85,10 @@ class MeterReadingController extends Controller
 
     public function edit(MeterReading $meterReading)
     {
-        $customers = Customer::orderBy('name')->get();
+        $customers = Customer::orderBy('first_name')
+            ->orderBy('last_name')
+            ->where('status', 'active')
+            ->get();
         return view('meter-readings.edit', compact('meterReading', 'customers'));
     }
 

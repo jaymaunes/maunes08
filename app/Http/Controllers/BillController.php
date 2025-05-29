@@ -44,13 +44,14 @@ class BillController extends Controller
             ->orderBy('last_name')
             ->get();
             
-        $readings = MeterReading::where('status', 'verified')
+        $readings = MeterReading::whereIn('status', ['pending', 'verified'])
             ->whereNotExists(function($query) {
                 $query->select(DB::raw(1))
                     ->from('bills')
                     ->whereColumn('bills.meter_reading_id', 'meter_readings.id');
             })
-            ->with('customer')
+            ->with(['customer', 'reader'])
+            ->orderBy('reading_date', 'desc')
             ->get();
         
         return view('bills.create', compact('customers', 'readings'));
@@ -71,7 +72,7 @@ class BillController extends Controller
 
             // Get the meter reading and verify it hasn't been billed
             $reading = MeterReading::where('id', $validated['meter_reading_id'])
-                ->where('status', 'verified')
+                ->whereIn('status', ['pending', 'verified'])
                 ->whereNotExists(function($query) {
                     $query->select(DB::raw(1))
                         ->from('bills')
@@ -87,12 +88,12 @@ class BillController extends Controller
             }
 
             // Get active water rate for customer's category
-            $rate = WaterRate::where('category', $customer->category)
+            $rate = WaterRate::where('category', $customer->connection_type)
                 ->where('is_active', true)
                 ->first();
 
             if (!$rate) {
-                throw new \Exception('No active water rate found for customer category: ' . $customer->category);
+                throw new \Exception('No active water rate found for customer category: ' . $customer->connection_type);
             }
 
             // Calculate consumption using the previous reading stored in meter_readings
@@ -102,14 +103,8 @@ class BillController extends Controller
                 throw new \Exception('Invalid consumption: Current reading is less than previous reading.');
             }
 
-            $rate_amount = $rate->cubic_meter_rate;
-            $amount = $consumption * $rate_amount;
-            $minimum_charge = $rate->minimum_charge;
-            $additional_charges = 0;
-
-            // Apply minimum charge if the calculated amount is less than minimum charge
-            $base_amount = max($amount, $minimum_charge);
-            $total_amount = $base_amount + $additional_charges;
+            // Calculate the bill amount using the water rate
+            $amount = $rate->calculateCharge($consumption);
 
             // Generate unique bill number
             $yearMonth = date('Ym', strtotime($validated['billing_date']));
@@ -123,19 +118,27 @@ class BillController extends Controller
             
             $billNumber = sprintf("BILL-%s-%04d", $yearMonth, $sequence);
 
-            $bill = new Bill($validated);
+            // Create the bill
+            $bill = new Bill();
             $bill->bill_number = $billNumber;
+            $bill->customer_id = $customer->id;
+            $bill->meter_reading_id = $reading->id;
             $bill->consumption = $consumption;
-            $bill->rate_amount = $rate_amount;
+            $bill->rate_amount = $rate->cubic_meter_rate;
             $bill->amount = $amount;
-            $bill->minimum_charge = $minimum_charge;
-            $bill->additional_charges = $additional_charges;
-            $bill->total_amount = $total_amount;
+            $bill->minimum_charge = $rate->minimum_rate;
+            $bill->additional_charges = 0;
+            $bill->total_amount = $amount;
+            $bill->billing_date = $validated['billing_date'];
+            $bill->due_date = $validated['due_date'];
+            $bill->notes = $validated['notes'];
             $bill->status = 'unpaid';
             $bill->save();
 
-            // Mark the meter reading as billed
-            $reading->update(['status' => 'billed']);
+            // Mark the meter reading as billed and verified
+            $reading->update([
+                'status' => 'billed'
+            ]);
 
             DB::commit();
 
@@ -161,7 +164,9 @@ class BillController extends Controller
                 ->with('error', 'Paid bills cannot be edited.');
         }
 
-        $customers = Customer::orderBy('name')->get();
+        $customers = Customer::orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
         $readings = MeterReading::where('status', 'verified')
             ->where(function($query) use ($bill) {
                 $query->whereNotExists(function($q) {

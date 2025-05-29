@@ -28,8 +28,8 @@
                         <div class="col-md-6">
                             <h6 class="text-muted">Bill Information</h6>
                             <p class="mb-1"><strong>Bill #:</strong> {{ str_pad($bill->id, 6, '0', STR_PAD_LEFT) }}</p>
-                            <p class="mb-1"><strong>Bill Date:</strong> {{ $bill->bill_date->format('M d, Y') }}</p>
-                            <p class="mb-1"><strong>Due Date:</strong> {{ $bill->due_date->format('M d, Y') }}</p>
+                            <p class="mb-1"><strong>Bill Date:</strong> {{ $bill->bill_date }}</p>
+                            <p class="mb-1"><strong>Due Date:</strong> {{ $bill->due_date }}</p>
                             <p class="mb-1">
                                 <strong>Status:</strong>
                                 <span class="badge bg-{{ $bill->status === 'paid' ? 'success' : ($bill->is_overdue ? 'danger' : 'warning') }}">
@@ -48,7 +48,7 @@
                                         <div class="col-md-6">
                                             <p class="mb-1"><strong>Reading:</strong></p>
                                             <h3 class="text-primary">{{ number_format($bill->meterReading->reading, 2) }} m³</h3>
-                                            <p class="text-muted">Taken on {{ $bill->meterReading->reading_date->format('M d, Y') }}</p>
+                                            <p class="text-muted">Taken on {{ $bill->meterReading->reading_date }}</p>
                                         </div>
                                         <div class="col-md-6 text-end">
                                             <p class="mb-1"><strong>Amount Due:</strong></p>

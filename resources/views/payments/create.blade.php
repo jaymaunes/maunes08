@@ -37,19 +37,21 @@
                             <label for="bill_id" class="form-label">Bill to Pay</label>
                             <select name="bill_id" id="bill_id" class="form-select @error('bill_id') is-invalid @enderror" required>
                                 <option value="">Select Bill</option>
-                                @foreach($bills as $bill)
-                                    <option value="{{ $bill->id }}" 
-                                            data-customer="{{ $bill->customer_id }}"
-                                            data-amount="{{ $bill->total_amount }}"
-                                            data-consumption="{{ $bill->consumption }}"
-                                            data-billing-date="{{ date('M d, Y', strtotime($bill->billing_date)) }}"
-                                            {{ old('bill_id') == $bill->id ? 'selected' : '' }}
-                                            class="bill-option customer-{{ $bill->customer_id }}"
-                                            style="display: none;">
-                                        Bill #{{ $bill->bill_number }} ({{ date('M d, Y', strtotime($bill->billing_date)) }})
-                                        - Consumption: {{ $bill->consumption }} m³
-                                        - Amount Due: ₱{{ number_format($bill->total_amount, 2) }}
-                                    </option>
+                                @foreach($bills as $customerId => $customerBills)
+                                    @foreach($customerBills as $bill)
+                                        <option value="{{ $bill->id }}" 
+                                                data-customer="{{ $bill->customer_id }}"
+                                                data-amount="{{ $bill->total_amount }}"
+                                                data-consumption="{{ $bill->consumption }}"
+                                                data-billing-date="{{ date('M d, Y', strtotime($bill->billing_date)) }}"
+                                                {{ old('bill_id') == $bill->id ? 'selected' : '' }}
+                                                class="bill-option customer-{{ $bill->customer_id }}"
+                                                style="display: none;">
+                                            Bill #{{ $bill->bill_number }} ({{ date('M d, Y', strtotime($bill->billing_date)) }})
+                                            - Consumption: {{ $bill->consumption }} m³
+                                            - Amount Due: ₱{{ number_format($bill->total_amount, 2) }}
+                                        </option>
+                                    @endforeach
                                 @endforeach
                             </select>
                             @error('bill_id')
@@ -149,6 +151,7 @@
         </div>
     </div>
 </div>
+@endsection
 
 @push('scripts')
 <script>

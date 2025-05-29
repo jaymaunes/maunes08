@@ -44,6 +44,11 @@ class Bill extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function waterRate()
+    {
+        return $this->belongsTo(WaterRate::class);
+    }
+
     public function scopeUnpaid($query)
     {
         return $query->where('status', 'unpaid');
@@ -57,5 +62,21 @@ class Bill extends Model
     public function getIsOverdueAttribute()
     {
         return $this->status !== 'paid' && now()->greaterThan($this->due_date);
+    }
+
+    public function getRemainingBalanceAttribute()
+    {
+        return $this->amount - $this->payments()->sum('amount');
+    }
+
+    public static function getStatuses()
+    {
+        return [
+            'unpaid' => 'Unpaid',
+            'partially_paid' => 'Partially Paid',
+            'paid' => 'Paid',
+            'overdue' => 'Overdue',
+            'cancelled' => 'Cancelled'
+        ];
     }
 } 

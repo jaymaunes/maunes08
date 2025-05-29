@@ -7,7 +7,9 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Meter Readings</h5>
-                    <a href="{{ route('meter-readings.create') }}" class="btn btn-primary">Add New Reading</a>
+                    <a href="{{ route('meter-readings.create') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i> Add New Reading
+                    </a>
                 </div>
 
                 <div class="card-body">
@@ -29,6 +31,8 @@
                                 <tr>
                                     <th>Customer</th>
                                     <th>Reading</th>
+                                    <th>Previous Reading</th>
+                                    <th>Consumption</th>
                                     <th>Reading Date</th>
                                     <th>Status</th>
                                     <th>Read By</th>
@@ -38,8 +42,14 @@
                             <tbody>
                                 @forelse ($readings as $reading)
                                     <tr>
-                                        <td>{{ $reading->customer->name }}</td>
-                                        <td>{{ number_format($reading->reading, 2) }}</td>
+                                        <td>
+                                            {{ $reading->customer->full_name }}
+                                            <br>
+                                            <small class="text-muted">{{ $reading->customer->meter_number }}</small>
+                                        </td>
+                                        <td>{{ number_format($reading->reading, 2) }} m³</td>
+                                        <td>{{ number_format($reading->previous_reading, 2) }} m³</td>
+                                        <td>{{ number_format($reading->consumption, 2) }} m³</td>
                                         <td>{{ $reading->reading_date->format('M d, Y') }}</td>
                                         <td>
                                             <span class="badge bg-{{ $reading->status === 'verified' ? 'success' : ($reading->status === 'disputed' ? 'danger' : 'warning') }}">
@@ -48,13 +58,23 @@
                                         </td>
                                         <td>{{ $reading->reader->name }}</td>
                                         <td>
-                                            <a href="{{ route('meter-readings.edit', $reading) }}" class="btn btn-sm btn-primary">Edit</a>
-                                            <a href="{{ route('meter-readings.show', $reading) }}" class="btn btn-sm btn-info">View</a>
+                                            <div class="btn-group" role="group">
+                                                <a href="{{ route('meter-readings.edit', $reading) }}" 
+                                                   class="btn btn-sm btn-primary"
+                                                   title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{{ route('meter-readings.show', $reading) }}" 
+                                                   class="btn btn-sm btn-info"
+                                                   title="View">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center">No meter readings found.</td>
+                                        <td colspan="8" class="text-center">No meter readings found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

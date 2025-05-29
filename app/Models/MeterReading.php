@@ -12,6 +12,7 @@ class MeterReading extends Model
     protected $fillable = [
         'customer_id',
         'reading',
+        'previous_reading',
         'reading_date',
         'status',
         'notes',
@@ -20,7 +21,8 @@ class MeterReading extends Model
 
     protected $casts = [
         'reading_date' => 'date',
-        'reading' => 'decimal:2'
+        'reading' => 'decimal:2',
+        'previous_reading' => 'decimal:2'
     ];
 
     public function customer()
@@ -31,5 +33,25 @@ class MeterReading extends Model
     public function reader()
     {
         return $this->belongsTo(User::class, 'read_by');
+    }
+
+    public function bill()
+    {
+        return $this->hasOne(Bill::class);
+    }
+
+    public static function getStatuses()
+    {
+        return [
+            'pending' => 'Pending',
+            'verified' => 'Verified',
+            'disputed' => 'Disputed',
+            'billed' => 'Billed'
+        ];
+    }
+
+    public function getConsumptionAttribute()
+    {
+        return $this->reading - $this->previous_reading;
     }
 } 
